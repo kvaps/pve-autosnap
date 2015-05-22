@@ -14,12 +14,15 @@ usage ()
       echo "    -m, --monthly               Run this script in mode for monthly autosnapshots"
       echo "    -y, --yearly                Run this script in mode for yearly autosnapshots"
       echo "    -s, --storage=STORAGENAME   Specify the storage name for which will be used auto snapshots"
+      echo "                                (0 or not specified will enable for all"
       echo "    -l, --leave=NUMBER          Specify the number of snapshots which should will leave, anything longer will be removed"
       echo "                                (0 or not specified will disable removing snapshots)"
       echo
       exit
 }
 
+loadkeys ()
+{
 while [ 1 ] ; do 
     if [ "$1" = "--daily" ] || [ "$1" = "-d" ] ; then 
         mode="daily"
@@ -47,39 +50,80 @@ while [ 2 ] ; do
         shift ; storage="$2" 
         break
     else 
-        echo -e "\nStorage is not set\n"
-        usage
+        storage=0
+        break
     fi
 done
 
 while [ 3 ] ; do 
     if [ "${3#--leave=}" != "$3" ] ; then  
-        leave="${3#--leave=}" 
+        leave=${3#--leave=} 
         break
     elif [ "$3" = "-l" ] ; then 
-        shift ; leave="$3" 
+        shift ; leave=$3 
         break
     else 
-        shift ; leave="0" 
+        shift ; leave=0 
         break
     fi
 done
+}
 
+gensnapname ()
+{
+    if [ $mode == "daily" ] ; then
+#        snapname="autodaily$(date +%y%m%d)"
+        snapname="autodaily$(date +%y%m%d%H%M%S)" #for test
+    elif [ $mode == "weekly" ] ; then
+#        snapname="autoweekly$(date +%y%m%d)"
+        snapname="autoweekly$(date +%y%m%d%H%M%S)" #for test
+    elif [ $mode == "monthly" ] ; then
+#        snapname="automonthly$(date +%y%m%d)"
+        snapname="automonthly$(date +%y%m%d%H%M%S)" #for test
+    elif [ $mode == "yearly" ] ; then
+#        snapname="autoyearly$(date +%y%m%d)"
+        snapname="autoyearly$(date +%y%m%d%H%M%S)" #for test
+    fi
+}
+
+printkeys ()
+{
+echo
 echo "mode:" $mode
 echo "storage:" $storage
 echo "leave:" $leave
+echo
+}
 
 
-
+getvms ()
+{
 vms=($(qm list | awk '{print$1}' | sed 1d))
+}
 
-for i in "${vms[@]}"
+autosnapshot ()
+{
+for vm in "${vms[@]}"
 do
-    echo vm: $i #for test
-    snapshots=($(grep -Po "(?<=\[).*(?=\])" "/etc/pve/nodes/$(hostname)/qemu-server/$i.conf"))
-    for j in "${snapshots[@]}"
-    do
-       echo $j #for test
-    done
+    echo vm: $vm #for test
+
+    storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | sed '$d' | grep -ci "$storage:$vm/vm-$vm"))
+
+    if [[ "$storagecheck" > "0" ]] ; then
+        echo "Creating $snapname for $vm"
+        qm snapshot $vm $snapname
+    fi
+   # snapshots=($(grep -Po "(?<=\[).*(?=\])" "/etc/pve/nodes/$(hostname)/qemu-server/$vm.conf"))
+   # for snap in "${snapshots[@]}"
+   # do
+   #    echo $snap #for test
+   # done
 
 done
+}
+
+loadkeys $1 $2 $3
+printkeys 
+gensnapname
+getvms
+autosnapshot
