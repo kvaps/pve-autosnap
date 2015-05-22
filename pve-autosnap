@@ -5,7 +5,7 @@ usage ()
       echo "Usage:    pve-snap --mode --storage=STORAGENAME [--leave=NUMBER]"
       echo
       echo "Example:  pve-snap --weekly --storage=ceph --leave=2"
-      echo "     or:  pve-snap --monthly --storage=lvm"
+      echo "     or:  pve-snap --yearly --storage=lvm"
       echo "     or:  pve-snap -d -s stor -l 4"
       echo
       echo "Arguments:"
@@ -69,3 +69,17 @@ echo "mode:" $mode
 echo "storage:" $storage
 echo "leave:" $leave
 
+
+
+vms=($(qm list | awk '{print$1}' | sed 1d))
+
+for i in "${vms[@]}"
+do
+    echo vm: $i #for test
+    snapshots=($(grep -Po "(?<=\[).*(?=\])" "/etc/pve/nodes/$(hostname)/qemu-server/$i.conf"))
+    for j in "${snapshots[@]}"
+    do
+       echo $j #for test
+    done
+
+done
