@@ -1,1 +1,71 @@
 #!/bin/bash
+
+usage ()
+{
+      echo "Usage:    pve-snap --mode --storage=STORAGENAME [--leave=NUMBER]"
+      echo
+      echo "Example:  pve-snap --weekly --storage=ceph --leave=2"
+      echo "     or:  pve-snap --monthly --storage=lvm"
+      echo "     or:  pve-snap -d -s stor -l 4"
+      echo
+      echo "Arguments:"
+      echo "    -d, --daily                 Run this script in mode for daily autosnapshots"
+      echo "    -w, --weekly                Run this script in mode for weekly autosnapshots"
+      echo "    -m, --monthly               Run this script in mode for monthly autosnapshots"
+      echo "    -y, --yearly                Run this script in mode for yearly autosnapshots"
+      echo "    -s, --storage=STORAGENAME   Specify the storage name for which will be used auto snapshots"
+      echo "    -l, --leave=NUMBER          Specify the number of snapshots which should will leave, anything longer will be removed"
+      echo "                                (0 or not specified will disable removing snapshots)"
+      echo
+      exit
+}
+
+while [ 1 ] ; do 
+    if [ "$1" = "--daily" ] || [ "$1" = "-d" ] ; then 
+        mode="daily"
+        break
+    elif [ "$1" = "--weekly" ] || [ "$1" = "-w" ] ; then 
+        mode="weekly"
+        break
+    elif [ "$1" = "--monthly" ] || [ "$1" = "-m" ] ; then
+        mode="monthly"
+        break
+    elif [ "$1" = "--yearly" ] || [ "$1" = "-y" ] ; then
+        mode="yearly"
+        break
+    else 
+        echo -e "\nMode is not set\n"
+        usage
+    fi
+done
+
+while [ 2 ] ; do 
+    if [ "${2#--storage=}" != "$2" ] ; then  
+        storage="${2#--storage=}" 
+        break
+    elif [ "$2" = "-s" ] ; then 
+        shift ; storage="$2" 
+        break
+    else 
+        echo -e "\nStorage is not set\n"
+        usage
+    fi
+done
+
+while [ 3 ] ; do 
+    if [ "${3#--leave=}" != "$3" ] ; then  
+        leave="${3#--leave=}" 
+        break
+    elif [ "$3" = "-l" ] ; then 
+        shift ; leave="$3" 
+        break
+    else 
+        shift ; leave="0" 
+        break
+    fi
+done
+
+echo "mode:" $mode
+echo "storage:" $storage
+echo "leave:" $leave
+
