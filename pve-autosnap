@@ -72,17 +72,21 @@ done
 gensnapname ()
 {
     if [ $mode == "daily" ] ; then
-#        snapname="autodaily$(date +%y%m%d)"
-        snapname="autodaily$(date +%y%m%d%H%M%S)" #for test
+        snapprefix="autodaily"
+        #snapname="$snapprefix$(date +%y%m%d%)"
+        snapname="$snapprefix$(date +%y%m%d%H%M%S)" #for test
     elif [ $mode == "weekly" ] ; then
-#        snapname="autoweekly$(date +%y%m%d)"
-        snapname="autoweekly$(date +%y%m%d%H%M%S)" #for test
+        snapprefix="autoweekly"
+        #snapname="$snapprefix$(date +%y%m%d%)"
+        snapname="$snapprefix$(date +%y%m%d%H%M%S)" #for test
     elif [ $mode == "monthly" ] ; then
-#        snapname="automonthly$(date +%y%m%d)"
-        snapname="automonthly$(date +%y%m%d%H%M%S)" #for test
+        snapprefix="automonthly"
+        #snapname="$snapprefix$(date +%y%m%d%)"
+        snapname="$snapprefix$(date +%y%m%d%H%M%S)" #for test
     elif [ $mode == "yearly" ] ; then
-#        snapname="autoyearly$(date +%y%m%d)"
-        snapname="autoyearly$(date +%y%m%d%H%M%S)" #for test
+        snapprefix="autoyearly"
+        #snapname="$snapprefix$(date +%y%m%d%)"
+        snapname="$snapprefix$(date +%y%m%d%H%M%S)" #for test
     fi
 }
 
@@ -101,28 +105,42 @@ getvms ()
 vms=($(qm list | awk '{print$1}' | sed 1d))
 }
 
+cleansnapshots ()
+{
+    if [[ "$leave" != "0" ]] ; then
+        snapshots=($(grep -Po "(?<=\[).*(?=\])" "/etc/pve/nodes/$(hostname)/qemu-server/$vm.conf" | grep ^"$snapprefix" | tac))
+        i=0
+        for snap in "${snapshots[@]}"
+        do
+            if [ "$i" -ge "$leave" ] ; then
+                echo "vm$vm: Removing snapshot $snap"
+                qm delsnapshot $vm $snap 
+            else
+                echo "vm$vm: Saving snapshot $snap"
+            fi
+            
+            let i++
+
+        done
+    fi
+}
+
 autosnapshot ()
 {
 for vm in "${vms[@]}"
 do
-    echo vm: $vm #for test
-
     storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | sed '$d' | grep -ci "$storage:$vm/vm-$vm"))
 
     if [[ "$storagecheck" > "0" ]] ; then
-        echo "Creating $snapname for $vm"
+        echo "vm$vm: Creating snapshot $snapname"
         qm snapshot $vm $snapname
     fi
-   # snapshots=($(grep -Po "(?<=\[).*(?=\])" "/etc/pve/nodes/$(hostname)/qemu-server/$vm.conf"))
-   # for snap in "${snapshots[@]}"
-   # do
-   #    echo $snap #for test
-   # done
 
+        cleansnapshots
 done
 }
 
-loadkeys $1 $2 $3
+loadkeys $@
 printkeys 
 gensnapname
 getvms
