@@ -5,7 +5,7 @@ usage ()
       echo "Usage:    pve-snap --mode --storage=STORAGENAME [--leave=NUMBER]"
       echo
       echo "Example:  pve-snap --weekly --storage=ceph --leave=2"
-      echo "     or:  pve-snap --yearly --storage=lvm"
+      echo "     or:  pve-snap --yearly --storage=pve-data"
       echo "     or:  pve-snap -d -s stor -l 4"
       echo
       echo "Arguments:"
@@ -73,20 +73,16 @@ gensnapname ()
 {
     if [ $mode == "daily" ] ; then
         snapprefix="autodaily"
-        #snapname="$snapprefix$(date +%y%m%d%)"
-        snapname="$snapprefix$(date +%y%m%d%H%M%S)" #for test
+        snapname="$snapprefix$(date +%y%m%d%)"
     elif [ $mode == "weekly" ] ; then
         snapprefix="autoweekly"
-        #snapname="$snapprefix$(date +%y%m%d%)"
-        snapname="$snapprefix$(date +%y%m%d%H%M%S)" #for test
+        snapname="$snapprefix$(date +%y%m%d%)"
     elif [ $mode == "monthly" ] ; then
         snapprefix="automonthly"
-        #snapname="$snapprefix$(date +%y%m%d%)"
-        snapname="$snapprefix$(date +%y%m%d%H%M%S)" #for test
+        snapname="$snapprefix$(date +%y%m%d%)"
     elif [ $mode == "yearly" ] ; then
         snapprefix="autoyearly"
-        #snapname="$snapprefix$(date +%y%m%d%)"
-        snapname="$snapprefix$(date +%y%m%d%H%M%S)" #for test
+        snapname="$snapprefix$(date +%y%m%d%)"
     fi
 }
 
