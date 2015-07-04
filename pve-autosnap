@@ -73,28 +73,18 @@ gensnapname ()
 {
     if [ $mode == "daily" ] ; then
         snapprefix="autodaily"
-        snapname="$snapprefix$(date +%y%m%d%)"
+        snapname="$snapprefix$(date +%y%m%d)"
     elif [ $mode == "weekly" ] ; then
         snapprefix="autoweekly"
-        snapname="$snapprefix$(date +%y%m%d%)"
+        snapname="$snapprefix$(date +%y%m%d)"
     elif [ $mode == "monthly" ] ; then
         snapprefix="automonthly"
-        snapname="$snapprefix$(date +%y%m%d%)"
+        snapname="$snapprefix$(date +%y%m%d)"
     elif [ $mode == "yearly" ] ; then
         snapprefix="autoyearly"
-        snapname="$snapprefix$(date +%y%m%d%)"
+        snapname="$snapprefix$(date +%y%m%d)"
     fi
 }
-
-printkeys ()
-{
-echo
-echo "mode:" $mode
-echo "storage:" $storage
-echo "leave:" $leave
-echo
-}
-
 
 getvms ()
 {
@@ -125,7 +115,7 @@ autosnapshot ()
 {
 for vm in "${vms[@]}"
 do
-    storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | sed '$d' | grep -ci "$storage:$vm/vm-$vm"))
+    storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep -ci "$storage:vm-$vm"))
 
     if [[ "$storagecheck" > "0" ]] ; then
         echo "vm$vm: Creating snapshot $snapname"
@@ -137,7 +127,6 @@ done
 }
 
 loadkeys $@
-printkeys 
 gensnapname
 getvms
 autosnapshot
