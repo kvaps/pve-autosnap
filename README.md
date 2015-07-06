@@ -26,17 +26,16 @@ Arguments:
 Just add your rules to crontab, example:
 ```bash
 STORAGE=local
-LOG=/var/log/pve-autosnap.log
 
 crontab -l > crontab.txt
 
 cat >> crontab.txt << EOF
 # Daily snapshot
-0 3 * * 1-6 /bin/pve-autosnap --daily --storage=$STORAGE --leave=3 >> $LOG
+0 3 * * 1-6 /bin/pve-autosnap --daily --storage=$STORAGE --leave=3
 # Weekly snapshot
-0 3 * * 7 /bin/pve-autosnap --weekly --storage=$STORAGE --leave=3 >> $LOG
+0 3 * * 7 /bin/pve-autosnap --weekly --storage=$STORAGE --leave=3
 # Monthly snapshot
-0 3 1 * * /bin/pve-autosnap --monthly --storage=$STORAGE --leave=4 >> $LOG
+0 3 1 * * /bin/pve-autosnap --monthly --storage=$STORAGE --leave=4
 EOF
 
 crontab crontab.txt

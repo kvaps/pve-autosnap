@@ -88,7 +88,7 @@ gensnapname ()
 
 getvms ()
 {
-vms=($(qm list | awk '{print$1}' | sed 1d))
+vms=($(/usr/sbin/qm list | awk '{print$1}' | sed 1d))
 }
 
 cleansnapshots ()
@@ -100,7 +100,7 @@ cleansnapshots ()
         do
             if [ "$i" -ge "$leave" ] ; then
                 echo "vm$vm: Removing snapshot $snap"
-                qm delsnapshot $vm $snap 
+                /usr/sbin/qm delsnapshot $vm $snap 
             else
                 echo "vm$vm: Saving snapshot $snap"
             fi
@@ -119,7 +119,7 @@ do
 
     if [[ "$storagecheck" > "0" ]] ; then
         echo "vm$vm: Creating snapshot $snapname"
-        qm snapshot $vm $snapname
+        /usr/sbin/qm snapshot $vm $snapname
     fi
 
         cleansnapshots
