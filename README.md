@@ -4,7 +4,7 @@
 ## Usage
 
 ```bash
-Usage:    pve-snap --mode --storage=STORAGENAME [--leave=NUMBER]
+Usage:    pve-snap --mode [--storage=STORAGENAME] [--leave=NUMBER]
 
 Example:  pve-snap --weekly --storage=ceph --leave=2
      or:  pve-snap --yearly --storage=pve-data
