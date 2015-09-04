@@ -115,7 +115,7 @@ autosnapshot ()
 {
 for vm in "${vms[@]}"
 do
-    storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep -ci "$storage:[vm-]*$vm"))
+    storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep -ci "[$storage]*:[vm-]*$vm"))
 
     if [[ "$storagecheck" > "0" ]] ; then
         echo "vm$vm: Creating snapshot $snapname"
