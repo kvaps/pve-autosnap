@@ -2,7 +2,7 @@
 
 usage ()
 {
-      echo "Usage:    pve-snap --mode --storage=STORAGENAME [--leave=NUMBER]"
+      echo "Usage:    pve-snap --mode [--storage=STORAGENAME] [--leave=NUMBER]"
       echo
       echo "Example:  pve-snap --weekly --storage=ceph --leave=2"
       echo "     or:  pve-snap --yearly --storage=pve-data"
