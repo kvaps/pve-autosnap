@@ -111,18 +111,33 @@ cleansnapshots ()
     fi
 }
 
+sleepsnapshot ()
+{
+    sleepmodifier=10
+
+    #TODO: Replace this shit-code
+    disksize=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep "$storage:vm-$vm" | sed  -r -e 's/.*size=[^0-9]*//g ; s/[^MG0-9]*//g'))
+    if [[ $disksize == *"G" ]] ; then disksize=$[($(echo $disksize | sed 's/[^0-9]//g'))*1024] ;
+    elif [[ $disksize == *"M" ]] ; then disksize=($(echo $disksize | sed 's/[^0-9]//g')) ;
+    else disksize=$[($(echo $disksize | sed 's/[^0-9]//g'))/1024/1024] ;fi
+    sleeptime=$[$disksize/1024/$sleepmodifier]
+    if [ $sleeptime = 0 ] ; then sleeptime=1 ;fi
+    sleep ${sleeptime}m
+}
+
 autosnapshot ()
 {
 for vm in "${vms[@]}"
 do
-    storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep -ci "[$storage]*:[vm-]*$vm"))
+    storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep -ci "$storage:[vm-]*$vm"))
 
     if [[ "$storagecheck" > "0" ]] ; then
         echo "vm$vm: Creating snapshot $snapname"
         /usr/sbin/qm snapshot $vm $snapname
+        sleepsnapshot
+        cleansnapshots
     fi
 
-        cleansnapshots
 done
 }
 
