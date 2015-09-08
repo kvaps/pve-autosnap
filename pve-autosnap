@@ -2,9 +2,9 @@
 
 usage ()
 {
-      echo "Usage:    pve-snap --mode [--storage=STORAGENAME] [--leave=NUMBER]"
+      echo "Usage:    pve-snap --mode [--storage STORAGENAME] [--leave NUMBER] [--sleep=NUMBER]"
       echo
-      echo "Example:  pve-snap --weekly --storage=ceph --leave=2"
+      echo "Example:  pve-snap --weekly --storage=ceph --leave=2 --sleep=10"
       echo "     or:  pve-snap --yearly --storage=pve-data"
       echo "     or:  pve-snap -d -s stor -l 4"
       echo
@@ -14,59 +14,42 @@ usage ()
       echo "    -m, --monthly               Run this script in mode for monthly autosnapshots"
       echo "    -y, --yearly                Run this script in mode for yearly autosnapshots"
       echo "    -s, --storage=STORAGENAME   Specify the storage name for which will be used auto snapshots"
-      echo "                                (0 or not specified will enable for all"
+      echo "                                (not specified will enable for all storages)"
       echo "    -l, --leave=NUMBER          Specify the number of snapshots which should will leave, anything longer will be removed"
-      echo "                                (0 or not specified will disable removing snapshots)"
+      echo "    -D, --sleep=NUMBER          Specify the modifier for sleep that would create a delay after each snapshot operation"
+      echo "                                (calculate as: NUMBER gigabytes per minute, min 1 minute)"
       echo
       exit
 }
 
+
+
 loadkeys ()
 {
-while [ 1 ] ; do 
-    if [ "$1" = "--daily" ] || [ "$1" = "-d" ] ; then 
-        mode="daily"
-        break
-    elif [ "$1" = "--weekly" ] || [ "$1" = "-w" ] ; then 
-        mode="weekly"
-        break
-    elif [ "$1" = "--monthly" ] || [ "$1" = "-m" ] ; then
-        mode="monthly"
-        break
-    elif [ "$1" = "--yearly" ] || [ "$1" = "-y" ] ; then
-        mode="yearly"
-        break
-    else 
-        echo -e "\nMode is not set\n"
-        usage
-    fi
-done
+    OPTS=`getopt -o dwmysl: --long daily,weekly,monthly,yearly,storage,leave,sleep: -n 'parse-options' -- "$@"`
+    
+    if [ $? != 0 ] ; then echo "Failed parsing options." >&2 ; exit 1 ; fi
+    
+    mode=
+    storage=
+    leave=
+    sleepmodofier=
+    
+    while true; do
+      case "$1" in
+        -d | --daily   ) mode=daily; shift ;;
+        -w | --weekly  ) mode=weekly; shift ;;
+        -m | --monthly ) mode=monthly; shift ;;
+        -y | --yearly  ) mode=yearly; shift ;;
+        -s | --storage ) storage="$2"; shift; shift ;;
+        -l | --leave   ) leave="$2"; shift; shift ;;
+        -D | --sleep   ) sleepmodifier="$2"; shift; shift ;;
+        -- ) shift; break ;;
+        * ) break ;;
+      esac
+    done
 
-while [ 2 ] ; do 
-    if [ "${2#--storage=}" != "$2" ] ; then  
-        storage="${2#--storage=}" 
-        break
-    elif [ "$2" = "-s" ] ; then 
-        shift ; storage="$2" 
-        break
-    else 
-        storage=0
-        break
-    fi
-done
-
-while [ 3 ] ; do 
-    if [ "${3#--leave=}" != "$3" ] ; then  
-        leave=${3#--leave=} 
-        break
-    elif [ "$3" = "-l" ] ; then 
-        shift ; leave=$3 
-        break
-    else 
-        shift ; leave=0 
-        break
-    fi
-done
+    if [ "$mode" = "" ] ; then echo -e "\nMode is not set\n"; usage; break; fi
 }
 
 gensnapname ()
@@ -93,7 +76,7 @@ vms=($(/usr/sbin/qm list | awk '{print$1}' | sed 1d))
 
 cleansnapshots ()
 {
-    if [[ "$leave" != "0" ]] ; then
+    if [[ "$leave" != "" ]] ; then
         snapshots=($(grep -Po "(?<=\[).*(?=\])" "/etc/pve/nodes/$(hostname)/qemu-server/$vm.conf" | grep ^"$snapprefix" | tac))
         i=0
         for snap in "${snapshots[@]}"
@@ -113,16 +96,22 @@ cleansnapshots ()
 
 sleepsnapshot ()
 {
-    sleepmodifier=10
+    if [ "$sleepmodifier" != "" ] ; then 
+            disksizes=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep "$storage:vm-$vm" | sed  -r -e 's/.*size=[^0-9]*//g ; s/[^MG0-9]*//g'))
 
-    #TODO: Replace this shit-code
-    disksize=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep "$storage:vm-$vm" | sed  -r -e 's/.*size=[^0-9]*//g ; s/[^MG0-9]*//g'))
-    if [[ $disksize == *"G" ]] ; then disksize=$[($(echo $disksize | sed 's/[^0-9]//g'))*1024] ;
-    elif [[ $disksize == *"M" ]] ; then disksize=($(echo $disksize | sed 's/[^0-9]//g')) ;
-    else disksize=$[($(echo $disksize | sed 's/[^0-9]//g'))/1024/1024] ;fi
-    sleeptime=$[$disksize/1024/$sleepmodifier]
-    if [ $sleeptime = 0 ] ; then sleeptime=1 ;fi
-    sleep ${sleeptime}m
+            for disksize in "${disksizes[@]}"
+            do
+                if [[ $disksize == *"G" ]] ;
+                then disksize=($(echo $disksize | sed 's/[^0-9]//g')) 
+                else disksize=$[($(echo $disksize | sed 's/[^0-9]//g'))/1024/1024/1024] ; fi
+
+                sleeptime=$[$disksize/$sleepmodifier]
+                if [ $sleeptime = 0 ] ; then sleeptime=1; fi
+
+                sleep ${sleeptime}m
+            done
+
+    fi
 }
 
 autosnapshot ()
