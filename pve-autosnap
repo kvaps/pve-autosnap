@@ -2,7 +2,7 @@
 
 usage ()
 {
-      echo "Usage:    pve-snap --mode [--storage STORAGENAME] [--leave NUMBER] [--sleep=NUMBER]"
+      echo "Usage:    pve-snap --mode [--storage STORAGENAME] [--leave NUMBER] [--sleep=NUMBER] [--exclude=VMS]"
       echo
       echo "Example:  pve-snap --weekly --storage=ceph --leave=2 --sleep=10"
       echo "     or:  pve-snap --yearly --storage=pve-data"
@@ -18,6 +18,7 @@ usage ()
       echo "    -l, --leave=NUMBER          Specify the number of snapshots which should will leave, anything longer will be removed"
       echo "    -D, --sleep=NUMBER          Specify the modifier for sleep that would create a delay after each snapshot operation"
       echo "                                (calculate as: NUMBER gigabytes per minute, min 1 minute)"
+      echo "    -E, --exclude=VMS           Specify the comma separated list of VMS for exclude"
       echo
       exit
 }
@@ -44,6 +45,7 @@ loadkeys ()
         -s | --storage ) storage="$2"; shift; shift ;;
         -l | --leave   ) leave="$2"; shift; shift ;;
         -D | --sleep   ) sleepmodifier="$2"; shift; shift ;;
+        -E | --exclude ) exclude="$2"; shift; shift ;;
         -- ) shift; break ;;
         * ) break ;;
       esac
@@ -71,7 +73,10 @@ gensnapname ()
 
 getvms ()
 {
-vms=($(/usr/sbin/qm list | awk '{print$1}' | sed 1d))
+    vms="$(/usr/sbin/qm list | awk '{print$1}' | sed 1d)"
+    for vm in $(echo "$exclude" | tr , ' '); do
+        vms="$(echo "$vms" | grep -v "^${vm}$" )"
+    done
 }
 
 cleansnapshots ()
@@ -116,8 +121,7 @@ sleepsnapshot ()
 
 autosnapshot ()
 {
-for vm in "${vms[@]}"
-do
+for vm in $vms; do
     storagecheck=($(sed '/^\[.*\]$/q' /etc/pve/nodes/$(hostname)/qemu-server/$vm.conf | grep -ci "$storage:[vm-]*$vm"))
 
     if [[ "$storagecheck" > "0" ]] ; then
